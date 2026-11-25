@@ -1,0 +1,1178 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>보이는 길</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: full-bleed isometric stage; chapter text top-left, progress top-right, controls docked at the bottom */
+:root {
+  --sky-a: #141a2e;
+  --sky-b: #e8c6c0;
+  --ink: #ece8f4;
+  --ink-soft: #b4b0c6;
+  --paper: rgba(255, 250, 246, 0.8);
+  --display: "Gowun Batang", "Nanum Myeongjo", "AppleMyungjo", serif;
+  --body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: linear-gradient(180deg, var(--sky-a), var(--sky-b));
+  color: var(--ink);
+  font-family: var(--body);
+  overflow: hidden;
+  transition: background 1s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* 하늘: 별, 달, 새벽빛 (게임 화면 뒤) */
+#stars, #glow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 1.2s ease; }
+#glow { background: radial-gradient(120% 60% at 50% 105%, rgba(255,196,150,.55), rgba(255,196,150,0) 70%); opacity: 0; }
+#moon { position: fixed; width: 136px; height: 136px; pointer-events: none; filter: blur(0.5px);
+  top: calc(env(safe-area-inset-top, 0px) + 78px); right: max(28px, env(safe-area-inset-right, 0px)); transition: opacity 1.2s ease; }
+@media (max-width: 560px) { #moon { width: 104px; height: 104px; top: calc(env(safe-area-inset-top, 0px) + 70px); right: 12px; } }
+#stage { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+.hud {
+  position: fixed; left: 0; right: 0; top: 0;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  pointer-events: none;
+}
+.hud > div { min-width: 0; }
+.brand { font-family: var(--display); font-size: 13px; letter-spacing: .3em; color: var(--ink-soft); }
+.chapter { font-family: var(--display); font-weight: 700; font-size: clamp(22px, 4vw, 30px); margin-top: 6px; text-wrap: balance; }
+.hint { margin-top: 8px; max-width: 36ch; font-size: 15px; line-height: 1.55; color: var(--ink-soft); }
+.side { display: grid; justify-items: end; gap: 10px; flex-shrink: 0; }
+.dots { display: flex; gap: 6px; pointer-events: auto; }
+.dots button {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%; justify-content: center;
+  font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-soft);
+  background: transparent; border: 1.5px solid rgba(74,58,63,.3);
+}
+.dots button { border-color: rgba(236,232,244,.35) !important; }
+.dots button.done { background: rgba(236,232,244,.16); color: var(--ink); }
+.dots button.on { background: var(--ink); color: #232842; border-color: var(--ink); }
+.dots button:disabled { opacity: .35; cursor: default; transform: none; }
+.moves { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.controls {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.handles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+button {
+  font-family: var(--body); font-size: 15px; color: var(--ink);
+  background: var(--paper); border: 1px solid rgba(74,58,63,.18);
+  padding: 10px 16px; border-radius: 999px; cursor: pointer;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform .15s ease, background .15s ease;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+button:hover { transform: translateY(-1px); background: rgba(255,255,255,.94); }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+button kbd { font-family: var(--body); font-size: 12px; color: var(--ink-soft); }
+.swatch { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.12); }
+.view-btn { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 18px; }
+.toast {
+  position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  background: #2a2a44; color: #f3f0f8; padding: 9px 16px; border-radius: 999px; font-size: 14px;
+  pointer-events: none; opacity: 0; transition: opacity .2s ease; white-space: nowrap;
+}
+.toast.show { opacity: .92; }
+.flash {
+  position: fixed; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.4), rgba(255,255,255,0) 65%);
+  transition: opacity .6s ease;
+}
+.flash.on { opacity: 1; transition: none; }
+#fade { position: fixed; inset: 0; background: #0f1322; opacity: 0; pointer-events: none; transition: opacity .7s ease; z-index: 5; }
+#fade.on { opacity: 1; }
+/* 엔딩: 아침 하늘, 해, 엔딩 카드 */
+#morning { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 8s ease;
+  background: linear-gradient(180deg, #8ea2c6 0%, #c9c3d6 55%, #f4d3b6 100%); }
+#sun { position: fixed; left: 50%; bottom: -200px; width: 220px; height: 220px; border-radius: 50%; pointer-events: none;
+  transform: translate(-50%, 0); opacity: 0; transition: transform 9s cubic-bezier(.25,.6,.3,1), opacity 4s ease;
+  background: radial-gradient(circle, rgba(255,236,200,.98) 0 34%, rgba(255,210,160,.45) 52%, rgba(255,200,150,0) 70%); }
+body.dawn #morning { opacity: 1; }
+body.dawn #sun { opacity: 1; transform: translate(-50%, -300px); }
+body.dawn #stars, body.dawn #moon { opacity: 0 !important; transition: opacity 3s ease; }
+body.dawn #glow { opacity: 1 !important; }
+.hud { transition: opacity 1.5s ease; }
+body.dawn .hud { opacity: 0; }
+#stage { transition: opacity 3.5s ease; }
+body.scene-out #stage { opacity: 0; }
+.ending {
+  position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center;
+  padding-block: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  color: #3e3446; animation: fade 2.4s ease both;
+}
+.ending h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); letter-spacing: .12em; }
+.ending p { margin: 0; color: #5e5266; font-size: 16px; line-height: 1.6; text-wrap: balance; }
+.ending button { margin-top: 10px; background: #3e3446; color: #fff8f3; border-color: #3e3446; }
+.panel {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(255, 246, 240, .35);
+  animation: fade .6s ease both;
+}
+.card {
+  background: var(--paper); border-radius: 18px; padding: 32px 36px; text-align: center;
+  max-width: 340px; box-shadow: 0 20px 60px rgba(74,58,63,.18);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: grid; gap: 14px;
+}
+.card { color: #3e3446; }
+.card h2 { margin: 0; font-family: var(--display); font-size: 26px; text-wrap: balance; }
+.card p { margin: 0; color: #6e6276; line-height: 1.6; }
+.card button { justify-self: center; background: #3e3446; color: #fff8f3; border-color: #3e3446; }
+.card button:hover { background: #33272b; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } body { transition: none; } }
+@media (max-width: 560px) {
+  .hint { font-size: 13.5px; }
+  .brand { font-size: 12px; }
+  .controls { gap: 8px; }
+  button { padding: 9px 13px; font-size: 14px; }
+  button kbd { display: none; }
+  .dots button { width: 22px; height: 22px; font-size: 11px; }
+}
+</style>
+
+<canvas id="stars" aria-hidden="true"></canvas>
+<div id="glow" aria-hidden="true"></div>
+<canvas id="moon" width="272" height="272" aria-hidden="true"></canvas>
+<div id="morning" aria-hidden="true"></div>
+<div id="sun" aria-hidden="true"></div>
+<canvas id="stage" aria-label="게임 화면"></canvas>
+
+<div class="hud">
+  <div>
+    <div class="brand">보이는 길</div>
+    <div class="chapter" id="chapter"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+  <div class="side">
+    <div class="dots" id="dots" aria-label="장 선택"></div>
+  </div>
+</div>
+
+<div class="flash" id="flash" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<div id="fade" aria-hidden="true"></div>
+<div class="ending" id="ending" hidden>
+  <h2>보이는 길</h2>
+  <p>보이는 대로 걸어온 길 끝에서, 아침을 만났습니다.</p>
+  <button id="btnRestart" type="button">처음부터 다시</button>
+</div>
+<div class="panel" id="panel" hidden>
+  <div class="card">
+    <h2 id="panelTitle">도착</h2>
+    <p id="panelText"></p>
+    <button id="btnNext" type="button">다음 장으로</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" charset="utf-8"></script>
+<script>window.THREE || document.write('<script src="three.min.js" charset="utf-8"><\/script>');</script>
+<script src="core.js" charset="utf-8"></script>
+
+<script>
+(function () {
+  if (!window.THREE || !window.LEVELS) {
+    document.getElementById("hint").textContent = "게임 파일을 불러오지 못했어요. index.html, core.js, three.min.js가 같은 폴더에 있는지 확인해 주세요.";
+    return;
+  }
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var GROUP_COLORS = [
+    { top: "#c4e4e2", light: "#86bdbf", dark: "#5d989b", css: "#5f9fa3", name: "청록" },
+    { top: "#f7d5c8", light: "#e39a83", dark: "#bf735d", css: "#d07f68", name: "산호" },
+    { top: "#f5e4ae", light: "#dcbb66", dark: "#b49040", css: "#c9a04a", name: "금빛" }
+  ];
+
+  var canvas = document.getElementById("stage");
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  var scene = new THREE.Scene();
+  var camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 400);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xcdb8b0, 0.85));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.45); sun.position.set(3, 8, 5); scene.add(sun);
+  // 캐릭터는 따로 그린다: 착시로 '옆에 붙어 보이는' 칸이 실제로는 카메라에 더 가까워 몸을 가리는 걸 막기 위해
+  var playerScene = new THREE.Scene();
+  playerScene.add(new THREE.HemisphereLight(0xffffff, 0xcdb8b0, 0.85));
+  var sun2 = new THREE.DirectionalLight(0xffffff, 0.45); sun2.position.set(3, 8, 5); playerScene.add(sun2);
+  renderer.autoClear = false;
+
+  var levelIndex = 0, L, S, G, world, blockMeshes = [], handleObjs = [], playerObj, goalGem;
+  var busy = false, won = false, anims = [], moves = 0;
+  var center = new THREE.Vector3();
+  var matSets = [];
+  var progress = 0;
+  try { progress = parseInt(localStorage.getItem("visible-path-progress") || "0", 10) || 0; } catch (e) {}
+
+  // ---------- 재질 ----------
+  var texCache = {};
+  function tileTex(base, mark) {
+    var id = base + mark;
+    if (texCache[id]) return texCache[id];
+    var c = document.createElement("canvas"); c.width = c.height = 128;
+    var g = c.getContext("2d");
+    g.fillStyle = base; g.fillRect(0, 0, 128, 128);
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 6; g.strokeRect(11, 11, 106, 106);
+    g.strokeStyle = "rgba(0,0,0,.07)"; g.lineWidth = 3; g.strokeRect(2, 2, 124, 124);
+    g.strokeStyle = "rgba(255,255,255,.85)"; g.fillStyle = "rgba(255,255,255,.85)";
+    if (mark === "ring") {
+      g.lineWidth = 5; g.beginPath(); g.arc(64, 64, 26, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(64, 64, 7, 0, Math.PI * 2); g.fill();
+    } else if (mark === "goal") {
+      g.beginPath();
+      for (var i = 0; i < 8; i++) { var r = i % 2 ? 14 : 36, a = i * Math.PI / 4; g.lineTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r); }
+      g.closePath(); g.fill();
+    }
+    var t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+    texCache[id] = t; return t;
+  }
+  // 모든 면에 칸 무늬(옆면도 디딜 수 있는 면이니까). markFace 면에만 mark 무늬를 넣는다.
+  function makeMatSet(top, light, dark, mark, markFace) {
+    if (markFace === undefined) markFace = 2;
+    var keep = [];
+    var isGoal = mark === "goal";
+    var mats = [0, 1, 2, 3, 4, 5].map(function (f) {
+      if (isGoal && f === markFace) { keep.push(f); return new THREE.MeshBasicMaterial({ map: tileTex(top, mark) }); }
+      if (f === 2) return new THREE.MeshBasicMaterial({ map: tileTex(top, isGoal ? "" : mark) });
+      return new THREE.MeshBasicMaterial({ color: dark });
+    });
+    matSets.push({ mats: mats, top: top, mark: isGoal ? "" : (mark || ""), light: new THREE.Color(light), dark: new THREE.Color(dark), keep: keep });
+    return mats;
+  }
+  // 지금 디딜 수 있는 방향(캐릭터가 서 있는 면 방향)의 면에만 칸 무늬를 그린다.
+  // 그래야 '칸 무늬끼리 이어져 보이면 길'이 화면만 봐도 정확히 맞는다.
+  function refreshFaceStyle() {
+    var pn = S ? S.pn : 2, outline = tileTex("#ffffff", "");
+    matSets.forEach(function (set) {
+      set.mats.forEach(function (m, f) {
+        if (set.keep.indexOf(f) >= 0) return;
+        var canStand = !set.faces || set.faces.indexOf(pn) >= 0;
+        if (f === pn && f === 2 && !canStand) { m.map = null; m.color.set(set.top); }
+        else if (f === pn && !canStand) { m.map = null; if (f === 3) m.color.copy(set.dark); }
+        else if (f === pn && f === 2) { m.map = tileTex(set.top, set.mark); m.color.set(0xffffff); } // 바닥에 설 때: 윗면 발판
+        else if (f === pn) { m.map = tileTex("#ffffff", set.mark); if (f === 3) m.color.copy(set.dark); } // 벽/천장에 설 때: 밝히지 않고 원래 벽 색에 무늬만
+        else if (f === 2) { m.map = null; m.color.set(set.top); }                     // 지금은 못 디디는 윗면 = 무늬 없는 지붕
+        else { m.map = null; }                                                        // 옆면/밑면 = 무늬 없는 벽 (명암은 shadeSides)
+        m.needsUpdate = true;
+      });
+    });
+  }
+  var NORMALS = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  // 카메라 각도에 따라 옆면 명암을 다시 칠한다 (화면 오른쪽을 향한 면은 밝게, 왼쪽은 어둡게)
+  function shadeSides() {
+    var rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    matSets.forEach(function (s) {
+      [0, 1, 4, 5].forEach(function (f) {
+        if (s.keep.indexOf(f) >= 0) return;
+        var n = NORMALS[f], d = n[0] * rx + n[2] * rz;
+        var t = Math.max(0, Math.min(1, d / 1.414 + 0.5));
+        s.mats[f].color.copy(s.dark).lerp(s.light, t);
+      });
+    });
+  }
+
+  function v3(a) { return new THREE.Vector3(a[0], a[1], a[2]); }
+  function lam(c) { return new THREE.MeshLambertMaterial({ color: c }); }
+
+  // ---------- 모델 ----------
+  function buildPlayer() {
+    var g = new THREE.Group();
+    var white = lam(0xfffaf5), scarfM = lam(0xd8665a);
+    var body = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.46, 24), white); body.position.y = 0.23;
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 20, 16), white); head.position.y = 0.5;
+    var hat = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 20), lam(0x4a3a3f)); hat.position.y = 0.66;
+    var scarf = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 8, 20), scarfM);
+    scarf.rotation.x = Math.PI / 2; scarf.position.y = 0.4;
+    var tail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.03), scarfM); tail.position.set(0, 0.32, -0.11);
+    g.add(body, head, hat, scarf, tail);
+    g.userData.inner = [body, head, hat, scarf, tail];
+    g.userData.base = [0.23, 0.5, 0.66, 0.4, 0.32];
+    return g;
+  }
+
+  function buildHandle(Gr, gi) {
+    var col = GROUP_COLORS[gi % GROUP_COLORS.length];
+    var g = new THREE.Group();
+    var post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.32, 16), lam(col.dark)); post.position.y = 0.16;
+    var wheel = new THREE.Group(); wheel.position.y = 0.3;
+    var ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.045, 10, 32), lam(col.light)); ring.rotation.x = Math.PI / 2;
+    wheel.add(ring);
+    for (var i = 0; i < 2; i++) {
+      var sp = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.05, 0.05), lam(col.dark)); sp.rotation.y = i * Math.PI / 2; wheel.add(sp);
+    }
+    for (var k = 0; k < 4; k++) {
+      var knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), lam(0xfffaf5));
+      knob.position.set(Math.cos(k * Math.PI / 2) * 0.3, 0.04, Math.sin(k * Math.PI / 2) * 0.3); wheel.add(knob);
+    }
+    var hit = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.6, 16), new THREE.MeshBasicMaterial({ visible: false }));
+    hit.position.y = 0.25;
+    g.add(post, wheel, hit);
+    g.position.copy(v3(Gr.handle)).add(new THREE.Vector3(0, 0.5, 0));
+    g.userData.wheel = wheel;
+    g.traverse(function (o) { o.userData.handle = gi; });
+    return g;
+  }
+
+  function buildDeco(d, stone) {
+    var g = new THREE.Group();
+    if (d.type === "dome") {
+      var drum = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.22, 24), lam(stone[1])); drum.position.y = 0.11;
+      var dome = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), lam(stone[0])); dome.position.y = 0.22;
+      var spire = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.32, 12), lam(stone[2])); spire.position.y = 0.76;
+      g.add(drum, dome, spire);
+    } else if (d.type === "friend") {
+      // 꼭대기에서 기다리는 친구: 주인공과 닮았지만 색이 다르다. 주인공 쪽을 바라보며 들썩인다.
+      var fb = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.56, 24), lam(0x9ec3cf)); fb.position.y = 0.28;
+      var fh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 16), lam(0xfffaf5)); fh.position.y = 0.62;
+      var fhat = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.16, 0.12, 20), lam(0xe0b46a)); fhat.position.y = 0.78;
+      var lamp = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), new THREE.MeshLambertMaterial({ color: 0xffe08a, emissive: 0x8a6a10 }));
+      lamp.position.set(0.22, 0.42, 0.05);
+      g.add(fb, fh, fhat, lamp);
+      g.userData.friend = true;
+    } else if (d.type === "tree") {
+      var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.24, 8), lam(0x8a6a58)); trunk.position.y = 0.12;
+      var c1 = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.5, 16), lam(0x9fc49b)); c1.position.y = 0.44;
+      var c2 = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.4, 16), lam(0xb6d6ae)); c2.position.y = 0.72;
+      g.add(trunk, c1, c2);
+    } else {
+      var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.9, 8), lam(0x6b5a5e)); pole.position.y = 0.45;
+      var shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(0.38, -0.11); shape.lineTo(0, -0.22);
+      var flag = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshLambertMaterial({ color: 0xd8665a, side: THREE.DoubleSide }));
+      flag.position.y = 0.88; g.add(pole, flag);
+    }
+    g.position.copy(v3(d.at)).add(new THREE.Vector3(0, 0.5, 0));
+    return g;
+  }
+
+  // 디딜 수 없는 둥근 탑: 돌 띠와 작은 창문, 꼭대기 테두리
+  function buildTower(c, stone) {
+    var g = new THREE.Group(), h = c.y[1] - c.y[0];
+    var cv = document.createElement("canvas"); cv.width = 256; cv.height = 512;
+    var x = cv.getContext("2d");
+    x.fillStyle = stone[0]; x.fillRect(0, 0, 256, 512);
+    x.fillStyle = "rgba(0,0,0,.06)";
+    for (var yy = 0; yy < 512; yy += 64) x.fillRect(0, yy, 256, 6);
+    x.fillStyle = stone[2];
+    for (var k = 0; k < 4; k++) { var wx = 20 + k * 64, wy = 120 + (k % 2) * 180; x.beginPath(); x.moveTo(wx, wy + 40); x.lineTo(wx, wy + 12); x.arc(wx + 12, wy + 12, 12, Math.PI, 0); x.lineTo(wx + 24, wy + 40); x.fill(); }
+    var tex = new THREE.CanvasTexture(cv); tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(3, 1);
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(c.r, c.r, h, 48, 1, true), new THREE.MeshLambertMaterial({ map: tex }));
+    body.position.set(c.c[0], (c.y[0] + c.y[1]) / 2, c.c[1]);
+    var cap = new THREE.Mesh(new THREE.CircleGeometry(c.r, 48), lam(stone[0])); cap.rotation.x = -Math.PI / 2; cap.position.set(c.c[0], c.y[1] + 0.001, c.c[1]);
+    var rim = new THREE.Mesh(new THREE.TorusGeometry(c.r, 0.08, 8, 48), lam(stone[1])); rim.rotation.x = Math.PI / 2; rim.position.set(c.c[0], c.y[1], c.c[1]);
+    var base = new THREE.Mesh(new THREE.CircleGeometry(c.r, 48), lam(stone[2])); base.rotation.x = Math.PI / 2; base.position.set(c.c[0], c.y[0], c.c[1]);
+    g.add(body, cap, rim, base);
+    return g;
+  }
+  // 탑 주변을 도는 새와 떠 있는 등불 (보기만 하는 오브젝트)
+  var friends = [], birds = [], lanterns = [];
+  function buildAmbient(c) {
+    for (var i = 0; i < 3; i++) {
+      var b = new THREE.Group(), m = lam(0x5b4a52);
+      var shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(0.35, 0.06); shape.lineTo(0.08, -0.1);
+      var wl = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshLambertMaterial({ color: 0x5b4a52, side: THREE.DoubleSide }));
+      var wr = wl.clone(); wr.scale.x = -1;
+      var bodyb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), m); bodyb.scale.set(1, 0.8, 1.8);
+      b.add(wl, wr, bodyb);
+      b.userData = { r: c.r + 4 + i * 1.3, h: c.y[0] + 4 + i * 2.2, sp: 0.35 + i * 0.12, ph: i * 2.1, wl: wl, wr: wr, cx: c.c[0], cz: c.c[1] };
+      world.add(b); birds.push(b);
+    }
+    for (var k = 0; k < 4; k++) {
+      var l = new THREE.Group();
+      var glow = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshLambertMaterial({ color: 0xffd98a, emissive: 0xb07a20 }));
+      var capl = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 0.06, 12), lam(0x6b5a5e)); capl.position.y = 0.17;
+      l.add(glow, capl);
+      var a = k * Math.PI / 2 + Math.PI / 4;
+      l.userData = { x: c.c[0] + Math.sin(a) * (c.r + 5.5), z: c.c[1] + Math.cos(a) * (c.r + 5.5), y: c.y[0] + 3 + k * 1.6, ph: k };
+      world.add(l); lanterns.push(l);
+    }
+  }
+  function animateAmbient(t, dt) {
+    var e = ending ? ending.t : 0;
+    birds.forEach(function (b) {
+      var u = b.userData, a = t * u.sp + u.ph;
+      if (ending && e > 2) { u.r += dt * 3.2; u.h += dt * 1.4; } // 새는 멀리 날아간다
+      b.position.set(u.cx + Math.cos(a) * u.r, u.h + Math.sin(t * 0.7 + u.ph) * 0.4, u.cz + Math.sin(a) * u.r);
+      b.rotation.y = -a;
+      var f = Math.sin(t * 9 + u.ph) * 0.6; u.wl.rotation.z = f; u.wr.rotation.z = -f;
+    });
+    lanterns.forEach(function (l) {
+      var u = l.userData;
+      if (ending && e > 1.8) { u.y += dt * (0.9 + u.ph * 0.15); var sc = Math.max(0.01, 1 - Math.max(0, e - 4.5) * 0.45); l.scale.set(sc, sc, sc); } // 등불은 하늘로
+      l.position.set(u.x, u.y + Math.sin(t * 0.9 + u.ph) * 0.25, u.z);
+    });
+    friends.forEach(function (f) {
+      if (playerObj) { var dx = playerObj.position.x - f.position.x, dz = playerObj.position.z - f.position.z; f.rotation.y = Math.atan2(dx, dz); }
+      f.children[0].position.y = 0.28 + Math.abs(Math.sin(t * 2.2)) * 0.03;
+      if (f.userData.baseY !== undefined) f.position.y = f.userData.baseY + jumpHeight(e, 0.12);
+    });
+    if (ending && playerObj) { var jh = jumpHeight(e, 0); var inner = playerObj.userData.inner, base = playerObj.userData.base; inner.forEach(function (m, k) { m.position.y = base[k] + jh; }); }
+  }
+  // 엔딩: 두 번 폴짝 (delay초 늦게 시작)
+  function jumpHeight(e, delay) {
+    var t = e - 0.2 - delay;
+    if (!ending || t < 0 || t > 1.4) return 0;
+    return Math.abs(Math.sin(t / 0.7 * Math.PI)) * 0.38;
+  }
+
+  // ---------- 카메라 ----------
+  // 카메라 방향 = 수평각 yaw + 올려본각 pitch.  V = (cos p·sin y, sin p, cos p·cos y)
+  var yaw = Math.PI / 4, pitch = 0.6155, radius = 10;
+  var PITCH_MIN = PITCH_MIN_DEG * Math.PI / 180, PITCH_MAX = PITCH_MAX_DEG * Math.PI / 180; // 장마다 바뀐다(loadLevel)
+  // 지금 배치에서 두 칸이 정확히 맞닿아 보이는 시선 방향들. 손을 떼을 때 이 근처면 정확히 맞춰준다.
+  var MAG = [];
+  // 캐릭터가 지금 실제로 맞붙은 면만 따라 걸어갈 수 있는 칸들 (각도와 무관)
+  function homeTiles() {
+    var stand = {}, at = {}, home = {}, q = [S.player], D = planeDirs(S.pn);
+    standFaces(S, S.pn).forEach(function (i) { stand[i] = true; at[vkey(S.blocks[i].p)] = i; });
+    home[S.player] = true;
+    while (q.length) {
+      var c = q.shift(), p = S.blocks[c].p;
+      D.forEach(function (d) { var j = at[vkey([p[0] + d[0], p[1] + d[1], p[2] + d[2]])]; if (j !== undefined && !home[j]) { home[j] = true; q.push(j); } });
+    }
+    return home;
+  }
+  // 반짝이며 맞춰주는 건 '캐릭터가 갈 수 있는 칸이 새 길로 이어지는' 각도뿐
+  function refreshMagnets() {
+    var home = homeTiles();
+    MAG = alignViews(S).filter(function (c) { return home[c.a] || home[c.b]; }).map(function (c) {
+      return { yaw: Math.atan2(c.V[0], c.V[2]), pitch: Math.asin(c.V[1]), dir: new THREE.Vector3(c.V[0], c.V[1], c.V[2]), V: c.V };
+    });
+  }
+  function dirOf(y, p) { return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), Math.cos(p) * Math.cos(y)); }
+  function placeCamera() {
+    camera.position.copy(center).addScaledVector(dirOf(yaw, pitch), 80);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(center);
+    camera.updateMatrixWorld();
+  }
+  function allPoints() {
+    var pts = [];
+    L.blocks.forEach(function (p) { pts.push(p); });
+    L.groups.forEach(function (Gr) { for (var s = 0; s < groupSteps(Gr); s++) groupPos(Gr, s).forEach(function (p) { pts.push(p); }); });
+    (L.cylinders || []).forEach(function (c) {
+      [-1, 1].forEach(function (sx) { [-1, 1].forEach(function (sz) { pts.push([c.c[0] + sx * c.r, c.y[0] + 0.5, c.c[1] + sz * c.r]); pts.push([c.c[0] + sx * c.r, c.y[1] - 0.5, c.c[1] + sz * c.r]); }); });
+    });
+    return pts;
+  }
+  // 화면 방식: 맵이 한 화면에 충분히 크게 들어가면 전체를 고정해서 보여주고('fit'),
+  // 너무 크면 캐릭터를 따라간다('follow'). follow인 장은 시작할 때 전체를 한 번 보여준 뒤 캐릭터로 들어간다.
+  var camMode = "fit", fitVh = 5, fitCenter = new THREE.Vector3(), viewVh = 5, intro = null;
+  // 큰 맵 시작 장면: 목표를 보여주고(머묾) → 캐릭터 쪽으로 이동 (초)
+  var INTRO = [1.2, 2.0];
+  function narrowScreen() { return window.innerWidth < 560; }
+  function followVh() {
+    var aspect = window.innerWidth / window.innerHeight, narrow = narrowScreen();
+    return Math.max(narrow ? 5.2 : 5.6, (narrow ? 4.6 : 6.5) / aspect);
+  }
+  // 여러 각도에서 맵 전체가 들어가는 크기 중 가장 큰 값 (돌려도 줌이 흔들리지 않게)
+  function computeFit() {
+    var pts = allPoints(), mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    pts.forEach(function (p) { for (var i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], p[i]); mx[i] = Math.max(mx[i], p[i]); } });
+    fitCenter.set((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2 + 0.4, (mn[2] + mx[2]) / 2);
+    var aspect = window.innerWidth / window.innerHeight, narrow = narrowScreen();
+    var padH = narrow ? 1.3 : 1.2, padW = narrow ? 1.08 : 1.12, need = 0;
+    [20, 35, 50, 65].forEach(function (pd) {
+      for (var yd = 0; yd < 360; yd += 30) {
+        var y = yd * Math.PI / 180, pr = pd * Math.PI / 180;
+        var rx = Math.cos(y), rz = -Math.sin(y);
+        var ux = -Math.sin(pr) * Math.sin(y), uy = Math.cos(pr), uz = -Math.sin(pr) * Math.cos(y);
+        var mX = 0, mY = 0;
+        pts.forEach(function (p) {
+          for (var dx = -0.5; dx <= 0.5; dx++) for (var dy = -0.5; dy <= 1.3; dy += 1.8) for (var dz = -0.5; dz <= 0.5; dz++) {
+            var ox = p[0] + dx - fitCenter.x, oy = p[1] + dy - fitCenter.y, oz = p[2] + dz - fitCenter.z;
+            mX = Math.max(mX, Math.abs(ox * rx + oz * rz));
+            mY = Math.max(mY, Math.abs(ox * ux + oy * uy + oz * uz));
+          }
+        });
+        need = Math.max(need, mY * padH, mX * padW / aspect);
+      }
+    });
+    fitVh = need;
+    camMode = fitVh <= followVh() * 1.8 ? "fit" : "follow";
+  }
+  function refit() {
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    computeFit();
+    applyCamera();
+  }
+  // 캐릭터를 지금 서 있는 면 위에 놓고, 그 면을 '위'로 삼아 세운다
+  function orientPlayer(up, fwd) {
+    var u = up.clone().normalize(), f = fwd.clone().addScaledVector(u, -fwd.dot(u));
+    if (f.lengthSq() < 1e-6) { var t = tangents(S.pn)[0]; f = v3(t); }
+    f.normalize();
+    var r = new THREE.Vector3().crossVectors(u, f).normalize();
+    playerObj.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(r, u, f));
+  }
+  function playerUp() { return v3(FACE_N[S.pn]); }
+  function placePlayer(fwd) {
+    playerObj.position.copy(v3(faceCenter(S.blocks[S.player].p, S.pn)));
+    orientPlayer(playerUp(), fwd || new THREE.Vector3(0, 0, 1).applyQuaternion(playerObj.quaternion));
+  }
+  function followTarget() {
+    return playerObj ? playerObj.position.clone().addScaledVector(playerUp(), 0.4) : center.clone();
+  }
+  // 화면 기준 축: 오른쪽(right)과 위쪽(up) 방향
+  function screenAxes(y, p) {
+    return { rx: Math.cos(y), rz: -Math.sin(y), ux: -Math.sin(p) * Math.sin(y), uy: Math.cos(p), uz: -Math.sin(p) * Math.cos(y) };
+  }
+  function screenOffset(pt, base, ax) {
+    var ox = pt.x - base.x, oy = pt.y - base.y, oz = pt.z - base.z;
+    return { x: ox * ax.rx + oz * ax.rz, y: ox * ax.ux + oy * ax.uy + oz * ax.uz };
+  }
+  // base를 기준으로, 캐릭터가 화면 가장자리 영역에 들어갔을 때만 그만큼 옮긴 중심
+  function deadZoneCenter(vhBase, base) {
+    var aspect = window.innerWidth / window.innerHeight, vh = vhBase / zoom, vw = vh * aspect;
+    var ax = screenAxes(yaw, pitch), o = screenOffset(followTarget(), base, ax);
+    var limX = vw * 0.6, limUp = vh * 0.38, limDown = vh * 0.6; // 위쪽은 안내 문구 자리
+    var cx = 0, cy = 0;
+    if (o.x > limX) cx = o.x - limX; else if (o.x < -limX) cx = o.x + limX;
+    if (o.y > limUp) cy = o.y - limUp; else if (o.y < -limDown) cy = o.y + limDown;
+    return new THREE.Vector3(base.x + ax.rx * cx + ax.ux * cy, base.y + ax.uy * cy, base.z + ax.rz * cx + ax.uz * cy);
+  }
+  function followCenter(vhBase) { return deadZoneCenter(vhBase, fitCenter); }
+  var viewTurning = false, rotPivot = null, lastYaw = null, lastPitch = null;
+  function isTurning() { return viewTurning || !!glide || !!pinch || !!(down && down.drag); }
+  // 매 프레임: 화면 방식에 따라 카메라 중심과 크기를 정한다
+  function updateCamera(dt) {
+    var F = followVh();
+    if (ending && ending.t > 2.2) {
+      var k = 1 - Math.exp(-dt * 0.9);
+      center.lerp(fitCenter, k);
+      viewVh += (fitVh * 1.2 - viewVh) * k;
+      zoom += (1 - zoom) * k;
+      if (!reduce) yaw += dt * 0.06; // 아주 천천히 둘러본다
+      applyCamera(); lastYaw = yaw; lastPitch = pitch;
+      return;
+    }
+    if (intro) {
+      intro.t += dt;
+      var goalAt = v3(faceCenter(S.blocks[S.goal].p, S.goalN)).addScaledVector(v3(FACE_N[S.goalN]), 0.4), me = followTarget(), t = intro.t;
+      viewVh = F;
+      if (intro.skip) { // 터치하면 지금 자리에서 캐릭터로 바로 돌아온다
+        var k = ease(Math.min(1, t / 0.5));
+        center.copy(intro.from).lerp(me, k);
+        if (k >= 1) { intro = null; busy = false; }
+      } else if (t < INTRO[0]) center.copy(goalAt);
+      else {
+        var e = ease(Math.min(1, (t - INTRO[0]) / INTRO[1]));
+        center.copy(goalAt).lerp(me, e);
+        if (e >= 1) { intro = null; busy = false; }
+      }
+    } else if (camMode === "fit") {
+      // 작은 맵: 맵 중앙을 축으로, 맵 전체가 항상 보이게
+      center.lerp(fitCenter, 1 - Math.exp(-dt * 6));
+      viewVh = Math.max(fitVh, F * 0.75);
+    } else if (isTurning()) {
+      // 큰 맵: 돌리는 동안 캐릭터가 화면 중앙에 고정되고 그 자리를 축으로 돈다
+      center.copy(followTarget());
+      viewVh = F;
+    } else {
+      // 큰 맵: 캐릭터를 화면 중앙에 두고 따라간다
+      center.lerp(followTarget(), 1 - Math.exp(-dt * (reduce ? 30 : 5)));
+      viewVh = F;
+    }
+    applyCamera();
+    lastYaw = yaw; lastPitch = pitch;
+  }
+  function applyCamera() {
+    placeCamera();
+    var aspect = window.innerWidth / window.innerHeight;
+    var vh = viewVh / zoom, vw = vh * aspect, shift = vh * (narrowScreen() ? 0.1 : 0.05);
+    camera.left = -vw; camera.right = vw; camera.top = vh + shift; camera.bottom = -vh + shift;
+    camera.updateProjectionMatrix();
+    shadeSides();
+  }
+
+  // ---------- 화면 UI ----------
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1400);
+  }
+  function setMoves() {}
+  function setUI() {
+    document.getElementById("chapter").textContent = "제" + (levelIndex + 1) + "장 · " + L.name;
+    document.getElementById("hint").textContent = L.hint;
+    var dots = document.getElementById("dots"); dots.innerHTML = "";
+    // 장 선택 버튼은 로컬 파일로 열었을 때만 보여준다 (공유 링크에서는 숨김)
+    dots.hidden = location.protocol !== "file:";
+    LEVELS.forEach(function (_, i) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = i + 1;
+      b.setAttribute("aria-label", "제" + (i + 1) + "장");
+      if (i === levelIndex) b.className = "on"; else if (i < progress) b.className = "done";
+      b.disabled = i > progress;
+      b.addEventListener("click", function () { if (!busy) loadLevel(i); });
+      dots.appendChild(b);
+    });
+    applySky(LEVELS.length > 1 ? levelIndex / (LEVELS.length - 1) : 0);
+    snd.setLevel(LEVELS.length > 1 ? levelIndex / (LEVELS.length - 1) : 0);
+    setMoves();
+  }
+
+  // ---------- 하늘: 1장 깊은 밤 → 마지막 장 해 뜨기 직전. 달은 초승달 → 반달 → 보름달 ----------
+  var SKY = [ // [위, 아래]
+    [0.00, "#121729", "#1f2640"],
+    [0.35, "#171d36", "#30365a"],
+    [0.60, "#232748", "#504a6e"],
+    [0.85, "#353a64", "#9a7c8c"],
+    [1.00, "#4b5482", "#dcaa92"]
+  ];
+  function mixHex(a, b, t) {
+    var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), out = 0;
+    for (var sh = 16; sh >= 0; sh -= 8) { var ca = (pa >> sh) & 255, cb = (pb >> sh) & 255; out = (out << 8) | Math.round(ca + (cb - ca) * t); }
+    return "#" + ("000000" + out.toString(16)).slice(-6);
+  }
+  function skyAt(t, idx) {
+    for (var i = 1; i < SKY.length; i++) if (t <= SKY[i][0]) { var a = SKY[i - 1], b = SKY[i], u = (t - a[0]) / (b[0] - a[0]); return mixHex(a[idx], b[idx], u); }
+    return SKY[SKY.length - 1][idx];
+  }
+  function drawMoon(k) {
+    var cv = document.getElementById("moon"), c = cv.getContext("2d"), W = cv.width, r = W * 0.34;
+    c.clearRect(0, 0, W, W);
+    c.save(); c.translate(W / 2, W / 2);
+    var halo = c.createRadialGradient(0, 0, r * 0.8, 0, 0, r * 1.7);
+    halo.addColorStop(0, "rgba(240,234,214," + (0.10 + 0.12 * k) + ")"); halo.addColorStop(1, "rgba(240,234,214,0)");
+    c.fillStyle = halo; c.beginPath(); c.arc(0, 0, r * 1.7, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(240,234,214,.07)"; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill(); // 어두운 쪽은 아주 옇게
+    c.fillStyle = "rgba(241,235,216,.94)"; c.beginPath();
+    c.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false); // 오른쪽 반원 (차오르는 달은 오른쪽부터 밝다)
+    var rx = r * Math.abs(1 - 2 * k);
+    if (k < 0.5) c.ellipse(0, 0, rx, r, 0, Math.PI / 2, -Math.PI / 2, true);
+    else c.ellipse(0, 0, rx, r, 0, Math.PI / 2, Math.PI * 1.5, false);
+    c.fill(); c.restore();
+  }
+  var starSeed = [];
+  (function () { var x = 7; for (var i = 0; i < 48; i++) { x = (x * 9301 + 49297) % 233280; var a = x / 233280; x = (x * 9301 + 49297) % 233280; var b = x / 233280; x = (x * 9301 + 49297) % 233280; starSeed.push([a, b * 0.7, 0.5 + (x / 233280) * 0.9]); } })();
+  function drawStars() {
+    var cv = document.getElementById("stars"), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = window.innerWidth * dpr; cv.height = window.innerHeight * dpr;
+    var c = cv.getContext("2d"); c.clearRect(0, 0, cv.width, cv.height);
+    starSeed.forEach(function (st) { c.fillStyle = "rgba(236,232,244," + (0.25 + st[2] * 0.3) + ")"; c.beginPath(); c.arc(st[0] * cv.width, st[1] * cv.height, st[2] * dpr, 0, Math.PI * 2); c.fill(); });
+  }
+  function applySky(t) {
+    var root = document.documentElement.style;
+    root.setProperty("--sky-a", skyAt(t, 1));
+    root.setProperty("--sky-b", skyAt(t, 2));
+    document.getElementById("stars").style.opacity = String(Math.max(0, 1 - t * 1.1));
+    document.getElementById("glow").style.opacity = String(Math.max(0, (t - 0.7) / 0.3));
+    document.getElementById("moon").style.opacity = String(1 - Math.max(0, (t - 0.85) / 0.15) * 0.45); // 해 뜰 무렵엔 달이 옇어진다
+    drawMoon(0.12 + 0.88 * t);
+  }
+  drawStars();
+  window.addEventListener("resize", drawStars);
+
+  // ---------- 소리: 파일 없이 Web Audio로 만든다 (걷기, 장 클리어, 배경, 엔딩) ----------
+  var snd = (function () {
+    var ctx = null, master = null, bg = null, muted = false, noiseBuf = null;
+    function init() {
+      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      ctx = new AC();
+      master = ctx.createGain(); master.gain.value = muted ? 0 : 0.7; master.connect(ctx.destination);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      startBg();
+    }
+    function tone(freq, t0, dur, vol, type, dest) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || "sine"; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(dest || master); o.start(t0); o.stop(t0 + dur + 0.05);
+    }
+    // 배경: 낮게 깔리는 화음 + 아주 조용한 바람. level(0~1)에 따라 조금씩 밝아진다
+    var CHORDS = [[110, 164.8, 220, 261.6], [116.5, 174.6, 233.1, 293.7], [130.8, 196, 261.6, 329.6]];
+    function startBg() {
+      bg = { out: ctx.createGain(), filt: ctx.createBiquadFilter(), oscs: [] };
+      bg.out.gain.value = 0; bg.filt.type = "lowpass"; bg.filt.frequency.value = 500;
+      bg.filt.connect(bg.out); bg.out.connect(master);
+      CHORDS[0].forEach(function (f, k) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = k % 2 ? "triangle" : "sine"; o.frequency.value = f; o.detune.value = (k - 1.5) * 4;
+        g.gain.value = 0.05 / (k + 1);
+        o.connect(g); g.connect(bg.filt); o.start(); bg.oscs.push(o);
+      });
+      var n = ctx.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+      var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 600; bp.Q.value = 0.6;
+      var ng = ctx.createGain(); ng.gain.value = 0.018;
+      var lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.08; lg.gain.value = 0.012;
+      lfo.connect(lg); lg.connect(ng.gain); lfo.start();
+      n.connect(bp); bp.connect(ng); ng.connect(bg.out); n.start();
+      bg.out.gain.setTargetAtTime(1, ctx.currentTime, 2.5);
+      setLevel(lastLevelT);
+    }
+    var lastLevelT = 0;
+    function setLevel(t) {
+      lastLevelT = t; if (!ctx || !bg) return;
+      var ch = CHORDS[Math.min(CHORDS.length - 1, Math.floor(t * CHORDS.length))];
+      bg.oscs.forEach(function (o, k) { o.frequency.setTargetAtTime(ch[k], ctx.currentTime, 1.5); });
+      bg.filt.frequency.setTargetAtTime(450 + t * 900, ctx.currentTime, 2);
+    }
+    function step() {
+      if (!ctx || muted) return;
+      var t0 = ctx.currentTime, n = ctx.createBufferSource(); n.buffer = noiseBuf;
+      var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1400 + Math.random() * 700; bp.Q.value = 1.2;
+      var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.07);
+      n.connect(bp); bp.connect(g); g.connect(master); n.start(t0, Math.random()); n.stop(t0 + 0.1);
+      tone(105 + Math.random() * 25, t0, 0.09, 0.09, "sine");
+    }
+    function clear() {
+      if (!ctx || muted) return;
+      var t0 = ctx.currentTime + 0.05;
+      [523.3, 659.3, 784, 1046.5].forEach(function (f, k) { tone(f, t0 + k * 0.11, 1.4, 0.09); tone(f * 2, t0 + k * 0.11, 0.6, 0.02); });
+    }
+    function ending() {
+      if (!ctx) return;
+      var t0 = ctx.currentTime;
+      if (bg) bg.out.gain.setTargetAtTime(0, t0 + 2, 2.5); // 배경은 서서히 사라지고
+      [261.6, 329.6, 392, 523.3, 659.3].forEach(function (f, k) { // 해가 뜰 때 천천히 부풀며 퍼지는 화음
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = k % 2 ? "triangle" : "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + 0.8 + k * 0.5);
+        g.gain.linearRampToValueAtTime(0.05, t0 + 4 + k * 0.5);
+        g.gain.linearRampToValueAtTime(0.0001, t0 + 13);
+        o.connect(g); g.connect(master); o.start(t0 + 0.8 + k * 0.5); o.stop(t0 + 13.2);
+      });
+      [784, 659.3, 784, 1046.5].forEach(function (f, k) { tone(f, t0 + 5 + k * 0.6, 1.8, 0.05); });
+    }
+    function restartBg() { if (ctx && bg) bg.out.gain.setTargetAtTime(1, ctx.currentTime, 1.5); }
+    function toggle() { muted = !muted; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.7, ctx.currentTime, 0.1); }
+    return { init: init, step: step, clear: clear, ending: ending, setLevel: setLevel, restartBg: restartBg, toggle: toggle };
+  })();
+  // 브라우저 정책상 첫 터치/클릭/키 입력 뒤에 소리를 켠다
+  ["pointerdown", "keydown"].forEach(function (ev) { window.addEventListener(ev, function () { snd.init(); }, { passive: true }); });
+
+  // ---------- 레벨 ----------
+  var ending = null;
+  function loadLevel(n) {
+    ending = null; document.body.classList.remove("dawn", "scene-out"); document.getElementById("ending").hidden = true;
+    levelIndex = n; L = LEVELS[n]; S = makeState(L); G = buildGraph(L, S);
+    var v0 = L.view || [45, 35.26]; yaw = v0[0] * Math.PI / 180; pitch = v0[1] * Math.PI / 180;
+    PITCH_MIN = S.pr[0] * Math.PI / 180; PITCH_MAX = S.pr[1] * Math.PI / 180;
+    refreshMagnets();
+    busy = false; won = false; anims = []; moves = 0; matSets = []; glide = null; aligned = true;
+    if (world) scene.remove(world);
+    world = new THREE.Group(); scene.add(world);
+    blockMeshes = []; handleObjs = [];
+    var geo = new THREE.BoxGeometry(1, 1, 1);
+    var capGeo = new THREE.ConeGeometry(0.5, 0.34, 4);
+    var st = L.stone;
+    var mStatic = makeMatSet(st[0], st[1], st[2], "");
+    var mGoal = makeMatSet(S.goalN === 2 ? "#fff0bd" : st[0], st[1], st[2], "goal", S.goalN);
+    if (S.goalN !== 2) mGoal[S.goalN].map = tileTex("#fff0bd", "goal");
+    var mGroups = L.groups.map(function (Gr, gi) {
+      var c = GROUP_COLORS[gi % GROUP_COLORS.length], m = makeMatSet(c.top, c.light, c.dark, "ring");
+      matSets[matSets.length - 1].faces = Gr.faces ? Gr.faces.map(nIndex) : null; // 디딜 수 있는 면 방향이 정해진 장치
+      return m;
+    });
+    S.blocks.forEach(function (b, i) {
+      var m = new THREE.Mesh(geo, i === S.goal ? mGoal : (b.g >= 0 ? mGroups[b.g] : mStatic));
+      m.position.copy(v3(b.p)); m.userData.idx = i;
+      if (b.capTop) { // 벽 전용 블록: 작은 뾰족 지붕 (윗면으로는 디딜 수 없다)
+        var cap = new THREE.Mesh(capGeo, lam(b.g >= 0 ? GROUP_COLORS[b.g % GROUP_COLORS.length].dark : st[2]));
+        cap.position.y = 0.5 + 0.17; cap.rotation.y = Math.PI / 4; cap.userData.idx = i;
+        m.add(cap);
+      }
+      world.add(m); blockMeshes.push(m);
+    });
+    L.groups.forEach(function (Gr, gi) { var h = buildHandle(Gr, gi); world.add(h); handleObjs.push(h); });
+    friends = []; birds = []; lanterns = [];
+    (L.deco || []).forEach(function (d) { var o = buildDeco(d, st); world.add(o); if (o.userData.friend) { o.userData.baseY = o.position.y; friends.push(o); } });
+    (L.cylinders || []).forEach(function (c) { world.add(buildTower(c, st)); });
+    if (L.cylinders && L.cylinders.length) buildAmbient(L.cylinders[0]);
+    if (playerObj) playerScene.remove(playerObj);
+    playerObj = buildPlayer(); playerScene.add(playerObj);
+    placePlayer(new THREE.Vector3(0, 0, 1));
+    goalGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshLambertMaterial({ color: 0xffc94d, emissive: 0x7a4a00 }));
+    world.add(goalGem);
+    document.getElementById("panel").hidden = true;
+    zoom = 1;
+    refreshFaceStyle();
+    setUI(); refit();
+    intro = null;
+    if (camMode === "follow" && !reduce) { intro = { t: 0 }; busy = true; viewVh = followVh(); center.copy(v3(faceCenter(S.blocks[S.goal].p, S.goalN)).addScaledVector(v3(FACE_N[S.goalN]), 0.4)); }
+    else if (camMode === "follow") { viewVh = followVh(); center.copy(followTarget()); }
+    else { center.copy(fitCenter); viewVh = Math.max(fitVh, followVh() * 0.75); }
+    applyCamera();
+  }
+
+  // ---------- 애니메이션 ----------
+  function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function tween(dur, step, end) { anims.push({ t: 0, dur: reduce ? Math.min(dur, 0.12) : dur, step: step, end: end }); }
+
+  // ---------- 시점 회전: 어떤 각도든 자유. 두 칸이 거의 맞닿아 보이면 정확히 맞춰준다 ----------
+  // SNAP 안이면 정확히 붙고, SNAP~MAGNET 사이에서는 가까울수록 서서히 끌려간다 (갑자기 튀지 않게)
+  var SNAP = 2.2 * Math.PI / 180, MAGNET = 5.5 * Math.PI / 180, aligned = false, glide = null;
+  function closestYaw(target, ref) { return target + 2 * Math.PI * Math.round((ref - target) / (2 * Math.PI)); }
+  function clampPitch(p) { return Math.max(PITCH_MIN, Math.min(PITCH_MAX, p)); }
+  function nearestMag(y, p) {
+    var d = dirOf(y, p), best = null, ba = 9;
+    MAG.forEach(function (m) { var a = d.angleTo(m.dir); if (a < ba) { ba = a; best = m; } });
+    return { m: best, ang: ba };
+  }
+  function clampedOK(m) { return m && m.pitch >= PITCH_MIN - 1e-6 && m.pitch <= PITCH_MAX + 1e-6;
+  }
+  function magnetize(y, p) {
+    var n = nearestMag(y, p);
+    if (!clampedOK(n.m)) return { yaw: y, pitch: p, mag: null };
+    var my = closestYaw(n.m.yaw, y), mp = n.m.pitch;
+    if (n.ang < SNAP) return { yaw: my, pitch: mp, mag: n.m };
+    if (n.ang < MAGNET) {
+      var t = (n.ang - SNAP) / (MAGNET - SNAP), r = t * t * (3 - 2 * t);
+      return { yaw: my + (y - my) * r, pitch: mp + (p - mp) * r, mag: null };
+    }
+    return { yaw: y, pitch: p, mag: null };
+  }
+  function showView(v) {
+    if (v.mag && !aligned) flash();
+    aligned = !!v.mag;
+    yaw = v.yaw; pitch = v.pitch;
+    applyCamera();
+  }
+  function flash() {
+    var f = document.getElementById("flash");
+    f.classList.add("on");
+    requestAnimationFrame(function () { requestAnimationFrame(function () { f.classList.remove("on"); }); });
+  }
+  // 회전이 멈춘 뒤: 지금 화면에서 맞닿아 보이는 칸끼리 길로 잇는다
+  function settleView() {
+    viewTurning = false;
+    var n = nearestMag(yaw, pitch);
+    if (n.m && n.ang < 1e-4) { S.V = n.m.V.slice(); aligned = true; }
+    else { var d = dirOf(yaw, pitch); S.V = [d.x, d.y, d.z]; aligned = false; }
+    G = buildGraph(L, S);
+    busy = false;
+  }
+  function animateTo(m, dur, curve) {
+    var y0 = yaw, p0 = pitch, y1 = closestYaw(m.yaw, yaw), p1 = m.pitch;
+    tween(dur, function (t) {
+      var e = curve(t);
+      showView({ yaw: y0 + (y1 - y0) * e, pitch: p0 + (p1 - p0) * e, mag: t >= 1 ? m : null });
+    }, settleView);
+  }
+  // 키보드: 지금 방향에서 (dy, dp)만큼 돌린다. 끝났을 때 맞닿는 각도 근처면 맞춰준다.
+  function turnView(dy, dp) {
+    if (busy || won) return;
+    busy = true; viewTurning = true;
+    var y0 = yaw, p0 = pitch, y1 = yaw + dy, p1 = clampPitch(pitch + dp);
+    tween(0.55, function (t) {
+      var e = ease(t), y = y0 + (y1 - y0) * e, p = p0 + (p1 - p0) * e;
+      showView(t >= 1 ? magnetize(y, p) : { yaw: y, pitch: p, mag: null });
+    }, settleView);
+  }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  // 손을 뗀 뒤 관성으로 조금 더 돌다가 멈춘다. 정답 각도 근처에서 느려지면 붙잡힌다.
+  function stepGlide(dtms) {
+    glide.y += glide.wy * dtms;
+    glide.p = clampPitch(glide.p + glide.wp * dtms);
+    var k = Math.pow(0.993, dtms);
+    glide.wy *= k; glide.wp *= k;
+    var v = magnetize(glide.y, glide.p), speed = Math.sqrt(glide.wy * glide.wy + glide.wp * glide.wp);
+    showView(v);
+    if (speed < 0.00025 || (v.mag && speed < 0.0007)) { glide = null; settleView(); }
+  }
+
+  function activate(gi) {
+    if (busy || won || !L.groups[gi]) return;
+    var Gr = L.groups[gi], res = nextPositions(L, S, gi), h = handleObjs[gi];
+    if (!res) { jam(gi); return; }
+    busy = true;
+    var riding = S.blocks[S.player].g === gi;
+    var movers = [];
+    S.blocks.forEach(function (b, i) { if (b.g === gi) movers.push({ o: blockMeshes[i], from: blockMeshes[i].position.clone(), block: true }); });
+    if (riding) movers.push({ o: playerObj, from: playerObj.position.clone(), q0: playerObj.quaternion.clone() });
+    var wheel = h.userData.wheel, w0 = wheel.rotation.y;
+    var step;
+    if (Gr.type === "slide") {
+      var delta = v3(Gr.offset).multiplyScalar(res.st - S.gs[gi]);
+      step = function (e) { movers.forEach(function (m) { m.o.position.copy(m.from).addScaledVector(delta, e); }); };
+    } else {
+      var axis = Gr.axis === "y" ? new THREE.Vector3(0, 1, 0) : Gr.axis === "x" ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+      var piv = v3(Gr.pivot), sign = (Gr.dir < 0 ? -1 : 1) * (res.step || 1);
+      step = function (e) {
+        var a = sign * e * Math.PI / 2;
+        movers.forEach(function (m) {
+          m.o.position.copy(m.from).sub(piv).applyAxisAngle(axis, a).add(piv);
+          if (m.block) m.o.quaternion.setFromAxisAngle(axis, a);
+          else m.o.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(axis, a).multiply(m.q0));
+        });
+      };
+    }
+    tween(Gr.type === "slide" ? 0.9 : 0.75, function (t) {
+      var e = ease(t); step(e); wheel.rotation.y = w0 + e * Math.PI * (res.step || 1);
+    }, function () {
+      applyGroup(L, S, gi, res);
+      S.blocks.forEach(function (b, i) { blockMeshes[i].position.copy(v3(b.p)); blockMeshes[i].quaternion.identity(); });
+      if (riding) placePlayer();
+      refreshMagnets(); refreshFaceStyle(); G = buildGraph(L, S); busy = false; moves++; setMoves();
+    });
+  }
+
+  function jam(gi) {
+    busy = true; toast("무언가에 걸려서 돌아가지 않아요");
+    var targets = [handleObjs[gi]];
+    S.blocks.forEach(function (b, i) { if (b.g === gi) targets.push(blockMeshes[i]); });
+    var base = targets.map(function (o) { return o.position.clone(); });
+    tween(0.35, function (t) {
+      var s = Math.sin(t * Math.PI * 6) * 0.05 * (1 - t);
+      targets.forEach(function (o, k) { o.position.set(base[k].x + s, base[k].y, base[k].z - s); });
+    }, function () { targets.forEach(function (o, k) { o.position.copy(base[k]); }); busy = false; });
+  }
+
+  function walkPath(path) {
+    if (!path || path.length < 2) return;
+    busy = true; moves++; setMoves();
+    var GD = G.dir, i = 0;
+    function next() {
+      if (i >= path.length - 1) { busy = false; refreshMagnets(); checkWin(); return; }
+      var a = path[i], b = path[i + 1]; i++;
+      var pa = S.blocks[a].p, pb = S.blocks[b].p, A = v3(faceCenter(pa, S.pn)), B = v3(faceCenter(pb, S.pn));
+      var dd = GD[a + ">" + b] || [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]];
+      var d = v3(dd), up = playerUp();
+      orientPlayer(up, d);
+      var illusion = Math.abs(v3(pb).sub(v3(pa)).dot(up)) > 1e-6;
+      snd.step();
+      var inner = playerObj.userData.inner, base = playerObj.userData.base;
+      tween(0.42, function (t) {
+        if (!illusion) playerObj.position.lerpVectors(A, B, t);
+        else if (t < 0.5) playerObj.position.copy(A).addScaledVector(d, t);
+        else playerObj.position.copy(B).addScaledVector(d, t - 1);
+        var bob = Math.abs(Math.sin(t * Math.PI)) * 0.05;
+        inner.forEach(function (m, k) { m.position.y = base[k] + bob; });
+      }, function () { S.player = b; playerObj.position.copy(B); next(); });
+    }
+    next();
+  }
+
+  function startEnding() {
+    ending = { t: 0 }; busy = true;
+    snd.ending();
+    setTimeout(function () { document.body.classList.add("dawn"); }, reduce ? 0 : 900);           // 하늘이 밝아지고 해가 뜬다 (장면 뒤에서)
+    setTimeout(function () { document.body.classList.add("scene-out"); }, reduce ? 100 : 7000);   // 만난 장면이 천천히 사라진다
+    setTimeout(function () {
+      document.getElementById("ending").hidden = false;
+      document.getElementById("btnRestart").focus();
+    }, reduce ? 300 : 10500);
+  }
+  function checkWin() {
+    if (!isWin(S)) return;
+    won = true;
+    if (levelIndex + 1 > progress) { progress = Math.min(LEVELS.length, levelIndex + 1); try { localStorage.setItem("visible-path-progress", String(progress)); } catch (e) {} }
+    var last = levelIndex === LEVELS.length - 1;
+    if (last) { startEnding(); setUI(); return; }
+    snd.clear();
+    // 다음 장으로 자연스럽게 넘어간다 (버튼 없이)
+    setTimeout(function () {
+      var f = document.getElementById("fade");
+      f.classList.add("on");
+      setTimeout(function () { loadLevel(levelIndex + 1); f.classList.remove("on"); }, reduce ? 50 : 700);
+    }, reduce ? 300 : 1300);
+    return;
+    setTimeout(function () {
+      document.getElementById("panelTitle").textContent = last ? "정원의 끝에 닿았어요" : "제" + (levelIndex + 1) + "장 완료";
+      document.getElementById("panelText").textContent = last ? "보이는 대로 이어지는 길을 끝까지 걸었습니다." : "";
+      document.getElementById("panelText").hidden = !last;
+      document.getElementById("btnNext").textContent = last ? "처음부터 다시" : "다음 장으로";
+      document.getElementById("panel").hidden = false;
+      document.getElementById("btnNext").focus();
+      setUI();
+    }, reduce ? 100 : 900);
+  }
+
+  // ---------- 입력 ----------
+  var ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), down = null, lastPickN = -1;
+  function pick(ev) {
+    var r = canvas.getBoundingClientRect();
+    mouse.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+    mouse.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+    ray.setFromCamera(mouse, camera);
+    var hits = ray.intersectObjects(handleObjs.concat(blockMeshes), true);
+    if (!hits.length) return null;
+    var o = hits[0].object;
+    lastPickN = -1;
+    if (o.userData.idx !== undefined && hits[0].face) {
+      var n = hits[0].face.normal, best = -1, bd = -2;
+      FACE_N.forEach(function (f, k) { var d = f[0] * n.x + f[1] * n.y + f[2] * n.z; if (d > bd) { bd = d; best = k; } });
+      lastPickN = best;
+    }
+    return o;
+  }
+  // 끌기: 좌우로 끌면 수평 회전, 위아래로 끌면 기울기. 손을 떼면 그 자리에 멈춘다 (정답 각도 근처면 착 붙음)
+  var DRAG_PX = 280; // 이만큼 끌면 90°
+  // 두 손가락: 핀치로 확대/축소. 두 번째 손가락이 닿으면 하던 회전을 깔끔히 마무리하고 줌으로 전환한다.
+  var pointers = {}, pinch = null, zoom = 1;
+  function pcount() { return Object.keys(pointers).length; }
+  function pdist() { var k = Object.keys(pointers), a = pointers[k[0]], b = pointers[k[1]]; return Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)); }
+  function setZoom(z) { zoom = Math.max(0.55, Math.min(2.4, z)); applyCamera(); }
+  function startPinch() {
+    if (down && (down.drag || down.grabbed)) { glide = null; showView(magnetize(down.ry, down.rp)); settleView(); }
+    down = null;
+    pinch = { d0: pdist(), z0: zoom };
+  }
+  canvas.addEventListener("wheel", function (ev) {
+    ev.preventDefault();
+    setZoom(zoom * Math.exp(-ev.deltaY * 0.0015));
+  }, { passive: false });
+  document.addEventListener("gesturestart", function (ev) { ev.preventDefault(); });
+  canvas.addEventListener("pointerdown", function (ev) {
+    if (intro) { if (!intro.skip) intro = { skip: true, t: 0, from: center.clone() }; return; } // 터치하면 소개 장면을 건너뛴다
+    if (ev.isPrimary) { pointers = {}; pinch = null; } // 새 터치가 시작되면 남아 있던 기록은 버린다
+    pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+    if (pcount() >= 2) { if (!pinch) startPinch(); return; }
+    var now = performance.now(), grabbed = false, sy = yaw, sp = pitch;
+    if (glide) { sy = glide.y; sp = glide.p; glide = null; grabbed = true; } // 도는 중에 다시 붙잡기
+    down = { x: ev.clientX, y: ev.clientY, y0: sy, p0: sp, ry: sy, rp: sp, drag: false, grabbed: grabbed,
+             lastX: ev.clientX, lastY: ev.clientY, lastT: now, vx: 0, vy: 0, canDrag: grabbed || (!busy && !won) };
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  function endDrag() {
+    var now = performance.now();
+    if (now - down.lastT > 80) { down.vx = 0; down.vy = 0; } // 멈춘 뒤 놓으면 관성 없음
+    var k = (Math.PI / 2) / DRAG_PX;
+    var wy = Math.max(-0.006, Math.min(0.006, -down.vx * k)), wp = Math.max(-0.004, Math.min(0.004, down.vy * k));
+    canvas.style.cursor = "grab";
+    if (reduce || Math.sqrt(wy * wy + wp * wp) < 0.0003) { showView(magnetize(down.ry, down.rp)); settleView(); return; }
+    glide = { y: down.ry, p: down.rp, wy: wy, wp: wp };
+  }
+  canvas.addEventListener("pointercancel", function (ev) {
+    delete pointers[ev.pointerId];
+    if (pinch) { if (pcount() < 2) pinch = null; down = null; return; }
+    if (down && down.drag) endDrag();
+    down = null;
+  });
+  canvas.addEventListener("pointerup", function (ev) {
+    delete pointers[ev.pointerId];
+    if (pinch) { if (pcount() < 2) pinch = null; down = null; return; }
+    if (!down) return;
+    if (down.drag) { endDrag(); down = null; return; }
+    if (down.grabbed) { showView(magnetize(down.ry, down.rp)); settleView(); down = null; return; }
+    if (won) { down = null; return; }
+    var dx = ev.clientX - down.x, dy = ev.clientY - down.y; down = null;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) return;
+    var o = pick(ev); if (!o) return;
+    if (o.userData.handle !== undefined) { activate(o.userData.handle); return; }
+    if (busy) return;
+    var idx = o.userData.idx;
+    if (idx === undefined || idx === S.player) return;
+    // 블록의 어느 면을 눌러도, 그 블록의 '지금 서 있는 방향' 면이 갈 수 있는 칸이면 그리로 간다
+    var path = findPath(G, S.player, idx);
+    if (path) walkPath(path); else nudge(idx);
+  });
+  canvas.addEventListener("pointermove", function (ev) {
+    if (pointers[ev.pointerId]) { pointers[ev.pointerId].x = ev.clientX; pointers[ev.pointerId].y = ev.clientY; }
+    if (pinch) { if (pcount() >= 2) setZoom(pinch.z0 * pdist() / pinch.d0); return; }
+    if (down) {
+      var dx = ev.clientX - down.x, dy = ev.clientY - down.y, now = performance.now();
+      if (!down.drag && down.canDrag && (down.grabbed || !busy) && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        down.drag = true; busy = true; canvas.style.cursor = "grabbing";
+      }
+      if (down.drag) {
+        var dt = now - down.lastT, k = (Math.PI / 2) / DRAG_PX;
+        if (dt > 0) {
+          down.vx = down.vx * 0.6 + ((ev.clientX - down.lastX) / dt) * 0.4;
+          down.vy = down.vy * 0.6 + ((ev.clientY - down.lastY) / dt) * 0.4;
+        }
+        down.lastX = ev.clientX; down.lastY = ev.clientY; down.lastT = now;
+        down.ry = down.y0 - dx * k;
+        down.rp = clampPitch(down.p0 + dy * k);
+        showView(magnetize(down.ry, down.rp));
+      }
+      return;
+    }
+    var o = pick(ev);
+    canvas.style.cursor = o && (o.userData.handle !== undefined || (o.userData.idx !== undefined && G.walk[o.userData.idx])) ? "pointer" : "grab";
+  });
+  function nudge(idx) {
+    var m = blockMeshes[idx], base = m.position.clone();
+    busy = true;
+    tween(0.25, function (t) { m.position.y = base.y - Math.sin(t * Math.PI) * 0.06; }, function () { m.position.copy(base); busy = false; });
+  }
+
+  document.getElementById("btnRestart").addEventListener("click", function () { loadLevel(0); snd.restartBg(); });
+  document.getElementById("btnNext").addEventListener("click", function () {
+    loadLevel(levelIndex === LEVELS.length - 1 ? 0 : levelIndex + 1);
+  });
+  window.addEventListener("keydown", function (e) {
+    var k = e.key;
+    if (k === "q" || k === "Q" || k === "ㅂ" || k === "ArrowLeft") turnView(-Math.PI / 4, 0);
+    else if (k === "e" || k === "E" || k === "ㄷ" || k === "ArrowRight") turnView(Math.PI / 4, 0);
+    else if (k === "w" || k === "W" || k === "ㅈ" || k === "ArrowUp") turnView(0, 0.15);
+    else if (k === "s" || k === "S" || k === "ㄴ" || k === "ArrowDown") turnView(0, -0.15);
+    else if (k === "r" || k === "R" || k === "ㄱ") loadLevel(levelIndex);
+    else if (k === "m" || k === "M" || k === "ㅡ") snd.toggle();
+    else if (k >= "1" && k <= "9") activate(parseInt(k, 10) - 1);
+    else if (k === "Enter" && won) document.getElementById("btnNext").click();
+  });
+  window.addEventListener("resize", function () { if (L && !busy) refit(); });
+
+  function playerVisible() {
+    var d = dirOf(yaw, pitch);
+    return faceVisible(S.blocks[S.player].p, S.pn, S.blocks, [d.x, d.y, d.z]);
+  }
+
+  // ---------- 루프 ----------
+  var last = performance.now(), clock = 0, stuckT = 0;
+  function frame(now) {
+    requestAnimationFrame(frame); // 먼저 다음 프레임을 예약: 도중에 오류가 나도 게임이 멈추지 않게
+    var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+    if (glide) stepGlide(dt * 1000);
+    if (playerObj) updateCamera(dt);
+    for (var i = anims.length - 1; i >= 0; i--) {
+      var a = anims[i]; a.t += dt / a.dur;
+      try {
+        if (a.t >= 1) { anims.splice(i, 1); a.step(1); if (a.end) a.end(); }
+        else a.step(a.t);
+      } catch (err) { console.error(err); anims.splice(i, 1); busy = false; }
+    }
+    // 안전장치: 움직이는 것도 없는데 '움직이는 중'이 4초 넘게 이어지면 풀어 준다
+    if (busy && !anims.length && !glide && !intro && !ending && !(down && down.drag) && !pinch) {
+      stuckT += dt; if (stuckT > 4) { busy = false; stuckT = 0; }
+    } else stuckT = 0;
+    if (goalGem && S) {
+      var gp = v3(faceCenter(S.blocks[S.goal].p, S.goalN)), gn = v3(FACE_N[S.goalN]);
+      goalGem.position.copy(gp).addScaledVector(gn, (won ? 0.95 : 0.55) + (reduce ? 0 : Math.sin(clock * 2) * 0.06));
+      if (!reduce) goalGem.rotation.y += dt * 1.2;
+      goalGem.visible = !isWin(S) || won;
+    }
+    if (ending) ending.t += dt;
+    if (!reduce) animateAmbient(clock, dt);
+    if (!reduce) handleObjs.forEach(function (h, gi) {
+      var s = 1 + Math.sin(clock * 3 + gi) * 0.04; h.scale.set(s, s, s);
+    });
+    renderer.clear();
+    renderer.render(scene, camera);
+    // 밟고 선 칸이 지금 각도에서 다 보이면 맨 앞에(착시 인접 칸에 머리가 묻히지 않게),
+    // 가려져 있으면 보통처럼 앞의 블록에 가려지게 그린다
+    if (S && playerVisible()) renderer.clearDepth();
+    renderer.render(playerScene, camera);
+  }
+
+  function start(data) {
+    var n = data && typeof data.level === "number" && LEVELS[data.level] ? data.level : Math.min(progress, LEVELS.length - 1);
+    loadLevel(n);
+    requestAnimationFrame(frame);
+  }
+  var hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(function () { return { level: levelIndex }; });
+  if (hot && hot.ready) hot.ready(start);
+  else start((hot && hot.data) || {});
+})();
+</script>
